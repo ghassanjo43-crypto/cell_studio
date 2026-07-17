@@ -28,8 +28,8 @@ services:
           property: connectionString
       - key: VCS_JWT_SECRET
         generateValue: true          # strong random secret, shared with the worker
-      - key: VCS_WORKER_MODE
-        value: external               # the web process does not run jobs
+      -  key: VCS_WORKER_MODE
+         value: embedded              # the web process does not run jobs
       - key: VCS_CORS_ORIGINS
         fromService:
           type: web
