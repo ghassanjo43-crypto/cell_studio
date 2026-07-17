@@ -1,0 +1,80 @@
+# Render Blueprint for Virtual Cell Studio.
+# Deploy with: Render Dashboard → New → Blueprint → point at this repo.
+# Provisions a Postgres database, a backend API web service, a background worker
+# process, and a static frontend site — wired together automatically.
+
+databases:
+  - name: vcs-db
+    plan: free
+    databaseName: vcs
+    user: vcs
+
+services:
+  # ---- Backend API (web) -------------------------------------------------
+  - type: web
+    name: vcs-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -e ../engine && pip install -e '.[prod]' && alembic upgrade head"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: VCS_ENVIRONMENT
+        value: production
+      - key: VCS_DATABASE_URL
+        fromDatabase:
+          name: vcs-db
+          property: connectionString
+      - key: VCS_JWT_SECRET
+        generateValue: true          # strong random secret, shared with the worker
+      - key: VCS_WORKER_MODE
+        value: external               # the web process does not run jobs
+      - key: VCS_CORS_ORIGINS
+        fromService:
+          type: web
+          name: vcs-frontend
+          property: host              # the deployed frontend origin
+      - key: ANTHROPIC_API_KEY
+        sync: false                   # set in the dashboard to enable the AI copilot
+
+  # ---- Simulation worker (background process) ---------------------------
+  - type: worker
+    name: vcs-worker
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -e ../engine && pip install -e '.[prod]'"
+    startCommand: "python -m app.worker_main"
+    envVars:
+      - key: VCS_ENVIRONMENT
+        value: production
+      - key: VCS_DATABASE_URL
+        fromDatabase:
+          name: vcs-db
+          property: connectionString
+      - key: VCS_JWT_SECRET          # must match the backend (same token audience)
+        fromService:
+          type: web
+          name: vcs-backend
+          envVarKey: VCS_JWT_SECRET
+      - key: VCS_CORS_ORIGINS         # satisfies the production config check
+        value: "https://vcs-frontend.onrender.com"
+
+  # ---- Frontend (static site) -------------------------------------------
+  - type: web
+    name: vcs-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: vcs-backend
+          property: host              # e.g. https://vcs-backend.onrender.com
+    routes:
+      - type: rewrite                 # SPA fallback
+        source: /*
+        destination: /index.html

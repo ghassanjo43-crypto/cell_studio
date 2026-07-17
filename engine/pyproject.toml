@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcs-engine"
+version = "0.1.0"
+description = "Virtual Cell Studio simulation engine — standalone, multi-algorithm whole-cell kernel."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "Virtual Cell Studio" }]
+keywords = ["systems-biology", "whole-cell-model", "simulation", "computational-biology"]
+# NOTE: intentionally NO web/framework dependencies. The engine is the scientific
+# core and must remain importable from notebooks, workers, and tests alike.
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+# FBA metabolism (Module 2) needs COBRApy + an LP solver. Kept optional so the
+# kernel core (Module 1) stays a numpy-only import.
+fba = ["cobra>=0.29"]
+dev = ["pytest>=7.4", "mypy>=1.8", "cobra>=0.29"]
+
+[tool.setuptools.packages.find]
+include = ["vcs_engine*"]
+
+[tool.setuptools.package-data]
+vcs_engine = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+files = ["vcs_engine"]
+
+[[tool.mypy.overrides]]
+module = ["numpy.*", "cobra.*"]
+ignore_missing_imports = true

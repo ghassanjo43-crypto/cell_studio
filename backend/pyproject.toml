@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcs-backend"
+version = "0.1.0"
+description = "Virtual Cell Studio backend — FastAPI API over the vcs-engine simulation core."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+# NOTE: vcs-engine is a local package and is intentionally NOT listed here (it is
+# not on PyPI). Install it first:  pip install -e ../engine
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy>=2.0",
+    "pydantic[email]>=2.6",
+    "pydantic-settings>=2.1",
+    "pyjwt>=2.8",
+    "python-multipart>=0.0.9",
+    "anthropic>=0.40",
+    "alembic>=1.13",
+    # Use the OS trust store for TLS (works behind corporate CA-intercepting proxies).
+    "truststore>=0.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "httpx>=0.27", "mypy>=1.8"]
+# Production-only: the Postgres driver (psycopg 3). Dev/tests run on SQLite.
+prod = ["psycopg[binary]>=3.1"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+# The engine is a separate strictly-typed package; from the backend's boundary we
+# treat its surface as untyped rather than re-checking it here.
+warn_return_any = false
+plugins = ["pydantic.mypy"]
+files = ["app"]
+
+[[tool.mypy.overrides]]
+module = ["vcs_engine.*", "anthropic.*", "openai.*"]
+ignore_missing_imports = true
