@@ -39,27 +39,8 @@ services:
         sync: false                   # set in the dashboard to enable the AI copilot
 
   # ---- Simulation worker (background process) ---------------------------
-  - type: worker
-    name: vcs-worker
-    runtime: python
-    plan: free
-    rootDir: backend
-    buildCommand: "pip install -e ../engine && pip install -e '.[prod]'"
-    startCommand: "python -m app.worker_main"
-    envVars:
-      - key: VCS_ENVIRONMENT
-        value: production
-      - key: VCS_DATABASE_URL
-        fromDatabase:
-          name: vcs-db
-          property: connectionString
-      - key: VCS_JWT_SECRET          # must match the backend (same token audience)
-        fromService:
-          type: web
-          name: vcs-backend
-          envVarKey: VCS_JWT_SECRET
-      - key: VCS_CORS_ORIGINS         # satisfies the production config check
-        value: "https://vcs-frontend.onrender.com"
+ 
+  
 
   # ---- Frontend (static site) -------------------------------------------
   - type: web
