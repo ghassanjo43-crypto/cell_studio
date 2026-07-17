@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import threading
 import time
+import logging
+logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
@@ -48,9 +50,15 @@ class SimulationRunner:
             return
         try:
             self._run(sim)
-        except Exception as exc:  # noqa: BLE001 - record failure, don't crash the worker
+        except Exception as exc:
+            logger.exception(
+                "Simulation %s failed with an unhandled exception",
+                simulation_id,
+            )
+
             self.session.rollback()
             sim = self.session.get(Simulation, simulation_id)
+
             if sim is not None:
                 sim.status = SimulationStatus.FAILED.value
                 sim.error = f"{type(exc).__name__}: {exc}"
